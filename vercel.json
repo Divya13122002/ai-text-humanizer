@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/humanize/route.ts": {
+    "src/app/api/humanize/route.ts": {
       "maxDuration": 60
     }
   }
