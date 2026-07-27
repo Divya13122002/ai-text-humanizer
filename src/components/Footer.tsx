@@ -5,7 +5,7 @@ export function Footer() {
         <p>
           Built with ❤️ using free AI &mdash;{" "}
           <a
-            href="https://github.com/your-username/ai-text-humanizer"
+            href="https://github.com/Divya13122002/ai-text-humanizer"
             target="_blank"
             rel="noopener noreferrer"
             className="underline underline-offset-2 hover:text-indigo-500 transition-colors"
