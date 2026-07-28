@@ -6,10 +6,14 @@ interface PricingBannerProps {
   humanizeCount: number;
 }
 
+const PAYPAL_MONTHLY = "https://www.paypal.com/ncp/payment/J9KJ6NLZYERUA";
+const PAYPAL_YEARLY = "https://www.paypal.com/ncp/payment/K8T9T4NRTKCBY";
+
 export function PricingBanner({ humanizeCount }: PricingBannerProps) {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
 
   const price = billing === "monthly" ? 9 : 7;
+  const paypalLink = billing === "monthly" ? PAYPAL_MONTHLY : PAYPAL_YEARLY;
   const badge =
     humanizeCount >= 3
       ? `You've used ${humanizeCount} free humanizations`
@@ -66,12 +70,17 @@ export function PricingBanner({ humanizeCount }: PricingBannerProps) {
         )}
       </div>
 
-      <button className="mt-5 w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 transition-all hover:-translate-y-0.5">
-        Upgrade Now
-      </button>
+      <a
+        href={paypalLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-5 inline-block w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 transition-all hover:-translate-y-0.5"
+      >
+        Upgrade Now — ${billing === "monthly" ? "9/mo" : "7/mo"}
+      </a>
 
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
-        No commitment. Cancel anytime.
+        Secure payment via PayPal. Cancel anytime.
       </p>
     </div>
   );
