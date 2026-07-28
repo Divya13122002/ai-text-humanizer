@@ -1,38 +1,47 @@
 "use client";
-
+ 
 import { useState, useCallback, useRef } from "react";
 import { PricingBanner } from "./PricingBanner";
-
+ 
 const TONES = ["Natural", "Professional", "Conversational", "Simple", "Creative"];
-
+ 
 const EXAMPLE_TEXT = `Artificial intelligence has revolutionized the way we interact with technology. Machine learning algorithms can now process vast amounts of data and generate insights that were previously impossible to obtain. Natural language processing enables computers to understand and respond to human language with remarkable accuracy. The potential applications of these technologies span across healthcare, finance, education, and entertainment industries.`;
-
+ 
 function countWords(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
 }
-
+ 
 function countChars(text: string): number {
   return text.length;
 }
-
-function useLocalStorageNumber(key: string, initial: number) {
-  const [value, setValue] = useState<number>(() => {
-    if (typeof window === "undefined") return initial;
-    const stored = localStorage.getItem(key);
-    return stored ? parseInt(stored, 10) || initial : initial;
+ 
+function getTodayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+ 
+function useDailyLimit(maxPerDay: number) {
+  const [count, setCount] = useState<number>(() => {
+    if (typeof window === "undefined") return 0;
+    const key = getTodayKey();
+    const stored = localStorage.getItem(`humanize_${key}`);
+    return stored ? parseInt(stored, 10) : 0;
   });
-
+ 
   const increment = useCallback(() => {
-    setValue((prev) => {
+    setCount((prev) => {
       const next = prev + 1;
-      localStorage.setItem(key, String(next));
+      localStorage.setItem(`humanize_${getTodayKey()}`, String(next));
       return next;
     });
-  }, [key]);
-
-  return [value, increment] as const;
+  }, []);
+ 
+  const limitReached = count >= maxPerDay;
+  const remaining = Math.max(0, maxPerDay - count);
+ 
+  return { count, remaining, limitReached, increment };
 }
-
+ 
 export function TextHumanizer() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
@@ -42,32 +51,32 @@ export function TextHumanizer() {
   const [showComparison, setShowComparison] = useState(false);
   const [copied, setCopied] = useState(false);
   const outputRef = useRef<HTMLDivElement>(null);
-  const [humanizeCount, incCount] = useLocalStorageNumber("humanize_count", 0);
-
+  const daily = useDailyLimit(5);
+ 
   const handleHumanize = useCallback(async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || daily.limitReached) return;
     setLoading(true);
     setError(null);
     setOutput("");
-
+ 
     try {
       const res = await fetch("/api/humanize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: input, tone }),
       });
-
+ 
       const data = await res.json();
-
+ 
       if (!res.ok) {
         setError(data.error || "Failed to generate. Try again.");
         return;
       }
-
+ 
       setOutput(data.humanized);
-      incCount();
+      daily.increment();
       setShowComparison(true);
-
+ 
       setTimeout(() => {
         outputRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 100);
@@ -76,8 +85,8 @@ export function TextHumanizer() {
     } finally {
       setLoading(false);
     }
-  }, [input, tone, incCount]);
-
+  }, [input, tone, daily]);
+ 
   const handleCopy = useCallback(async () => {
     if (!output) return;
     try {
@@ -95,13 +104,13 @@ export function TextHumanizer() {
       setTimeout(() => setCopied(false), 2000);
     }
   }, [output]);
-
+ 
   const handleExample = useCallback(() => {
     setInput(EXAMPLE_TEXT);
     setOutput("");
     setError(null);
   }, []);
-
+ 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6 animate-fade-in">
       <div className="text-center mb-2">
@@ -109,7 +118,7 @@ export function TextHumanizer() {
           Paste AI-generated text below and make it sound human
         </p>
       </div>
-
+ 
       {/* Tone Selector */}
       <div className="flex flex-wrap justify-center gap-2">
         {TONES.map((t) => (
@@ -126,7 +135,7 @@ export function TextHumanizer() {
           </button>
         ))}
       </div>
-
+ 
       {/* Input Area */}
       <div className="glass-card">
         <div className="flex items-center justify-between mb-3">
@@ -154,58 +163,77 @@ export function TextHumanizer() {
         <div className="flex items-center justify-between mt-3">
           <span className="text-xs text-gray-400 dark:text-gray-500">
             {countWords(input)} words / {countChars(input)} chars
-          </span>
-          <button
-            onClick={handleHumanize}
-            disabled={loading || !input.trim()}
-            className={`px-6 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all ${
-              loading || !input.trim()
-                ? "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
-                : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0"
-            }`}
-          >
-            {loading ? (
-              <>
-                <svg
-                  className="animate-spin-slow w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
-                Humanizing…
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Humanize
-              </>
+            {!daily.limitReached && (
+              <span className="ml-2 text-indigo-500 dark:text-indigo-400 font-medium">
+                ({daily.remaining} free left today)
+              </span>
             )}
-          </button>
+          </span>
+          {daily.limitReached ? (
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                Daily limit reached (5/5)
+              </span>
+              <a
+                href="#pricing"
+                className="text-xs text-indigo-500 hover:text-indigo-600 font-medium transition-colors"
+              >
+                Upgrade below for unlimited →
+              </a>
+            </div>
+          ) : (
+            <button
+              onClick={handleHumanize}
+              disabled={loading || !input.trim()}
+              className={`px-6 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all ${
+                loading || !input.trim()
+                  ? "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
+                  : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0"
+              }`}
+            >
+              {loading ? (
+                <>
+                  <svg
+                    className="animate-spin-slow w-4 h-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  Humanizing…
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Humanize
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
-
+ 
       {/* Error */}
       {error && (
         <div className="animate-slide-up rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 p-4 text-sm text-red-700 dark:text-red-400">
           {error}
         </div>
       )}
-
+ 
       {/* Output Area */}
       {output && (
         <div ref={outputRef} className="animate-slide-up space-y-4">
@@ -236,7 +264,7 @@ export function TextHumanizer() {
               </button>
             </div>
           </div>
-
+ 
           {/* Comparison View */}
           {showComparison ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -275,14 +303,16 @@ export function TextHumanizer() {
           )}
         </div>
       )}
-
+ 
       {/* API note */}
       <p className="text-center text-xs text-gray-400 dark:text-gray-500">
         Powered by free AI – no key needed
       </p>
-
+ 
       {/* Pricing */}
-      <PricingBanner humanizeCount={humanizeCount} />
+      <div id="pricing">
+        <PricingBanner humanizeCount={daily.remaining} />
+      </div>
     </div>
   );
 }

@@ -1,24 +1,27 @@
 "use client";
-
+ 
 import { useState } from "react";
-
+ 
 interface PricingBannerProps {
   humanizeCount: number;
 }
-
+ 
+// Replace with your PayPal payment links
 const PAYPAL_MONTHLY = "https://www.paypal.com/ncp/payment/J9KJ6NLZYERUA";
 const PAYPAL_YEARLY = "https://www.paypal.com/ncp/payment/K8T9T4NRTKCBY";
-
+ 
 export function PricingBanner({ humanizeCount }: PricingBannerProps) {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
-
+ 
   const price = billing === "monthly" ? 9 : 7;
   const paypalLink = billing === "monthly" ? PAYPAL_MONTHLY : PAYPAL_YEARLY;
   const badge =
-    humanizeCount >= 3
-      ? `You've used ${humanizeCount} free humanizations`
-      : null;
-
+    humanizeCount <= 0
+      ? "You've used all 5 free humanizations today"
+      : humanizeCount <= 2
+        ? `Only ${humanizeCount} free left today`
+        : null;
+ 
   return (
     <div className="mt-8 glass-card text-center">
       {badge && (
@@ -32,7 +35,7 @@ export function PricingBanner({ humanizeCount }: PricingBannerProps) {
       <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
         Priority speed, no rate limits, all tones.
       </p>
-
+ 
       <div className="inline-flex items-center gap-2 mt-4 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
         <button
           onClick={() => setBilling("monthly")}
@@ -55,7 +58,7 @@ export function PricingBanner({ humanizeCount }: PricingBannerProps) {
           Yearly
         </button>
       </div>
-
+ 
       <div className="mt-4">
         <span className="text-3xl font-extrabold text-gray-900 dark:text-white">
           ${price}
@@ -69,7 +72,7 @@ export function PricingBanner({ humanizeCount }: PricingBannerProps) {
           </span>
         )}
       </div>
-
+ 
       <a
         href={paypalLink}
         target="_blank"
@@ -78,7 +81,7 @@ export function PricingBanner({ humanizeCount }: PricingBannerProps) {
       >
         Upgrade Now — ${billing === "monthly" ? "9/mo" : "7/mo"}
       </a>
-
+ 
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
         Secure payment via PayPal. Cancel anytime.
       </p>
